@@ -6,10 +6,11 @@
 
 #define PORT 8080
 
+
 int main() {
     struct sockaddr_in serv_addr;
     int sock = 0;
-    char *hello = "Hello from client";
+    char buffer[1024] = {0};
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
         printf("\n Socket creation error \n");
@@ -19,7 +20,6 @@ int main() {
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
-    // Converta o endereço IPv4 e IPv6 de texto para binário
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
         printf("\nInvalid address/ Address not supported \n");
         return -1;
@@ -29,9 +29,32 @@ int main() {
         printf("\nConnection Failed \n");
         return -1;
     }
-    send(sock, hello, strlen(hello), 0);
-    printf("Mensagem enviada\n");
-    close(sock);
 
+
+    while (1) {
+        int row, col;
+
+        read(sock, buffer, 1024);
+        printf("%s\npelo menos", buffer); //Exibe o board
+
+        printf("Enter row and column (0-2): ");
+        scanf("%d %d", &row, &col);
+
+        memset(buffer, 0, sizeof(buffer));
+        snprintf(buffer, sizeof(buffer), "%d %d", row, col);
+        send(sock, buffer, strlen(buffer), 0);
+
+        read(sock, buffer, 1024);
+        printf("%s\n", buffer);
+    
+        
+        if (!strcmp(buffer, "**** VOCE VENCEU!!! ****\n")){ break;}
+        
+        memset(buffer, 0, sizeof(buffer));
+        
+
+    }
+
+    close(sock);
     return 0;
 }

@@ -32,16 +32,6 @@ void initializeGame() {
     gameState.gameOver = 0;
 }
 
-void printBoard() {
-    char board[6][6];
-    printf("Current board:\n");
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        for (int j = 0; j < BOARD_SIZE; j++) {
-            board[i][j] = gameState.board[i][j];
-        }
-    }
-}
-
 int isValidMove(int row, int col) {
     return row >= 0 && row < BOARD_SIZE && col >= 0 && col < BOARD_SIZE && gameState.board[row][col] == ' ';
 }

@@ -1,0 +1,3 @@
+#ignorar arquivos gerados pelo gcc
+cliente
+servidor

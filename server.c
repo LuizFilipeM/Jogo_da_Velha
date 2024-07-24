@@ -76,75 +76,66 @@ void *handleClient(void *arg) {
 
     while (!gameState.gameOver) {
         int index = 0;
+           
+        
 
-        if (gameState.currentPlayer == 0){    
-            memset(buffer, 0, sizeof(buffer));
-            for (int i = 0; i < 3; i++) {
-                for (int j = 0; j < 3; j++) {
-                    index += snprintf(buffer + index, sizeof(buffer) - index, " %c", gameState.board[i][j]);
-                    if (j < 3 - 1) {
-                        index += snprintf(buffer + index, sizeof(buffer) - index, " |");
-                    }
-                }
-                index += snprintf(buffer + index, sizeof(buffer) - index, "\n");
-                if (i < 3 - 1) {
-                    index += snprintf(buffer + index, sizeof(buffer) - index, "---+---+---\n");
-                    }   
-                }
-                            
-            send(gameState.list[0].socket, buffer, strlen(buffer), 0);
-            memset(buffer, 0, sizeof(buffer));
-            } else{
-                memset(buffer, 0, sizeof(buffer));
-                for (int i = 0; i < 3; i++) {
-                    for (int j = 0; j < 3; j++) {
-                        index += snprintf(buffer + index, sizeof(buffer) - index, " %c", gameState.board[i][j]);
-                        if (j < 3 - 1) {
-                            index += snprintf(buffer + index, sizeof(buffer) - index, " |");
-                        }
-                    }
-                    index += snprintf(buffer + index, sizeof(buffer) - index, "\n");
-                    if (i < 3 - 1) {
-                        index += snprintf(buffer + index, sizeof(buffer) - index, "---+---+---\n");
-                        }   
-                    }
-                                
-                send(gameState.list[1].socket, buffer, strlen(buffer), 0);
-                memset(buffer, 0, sizeof(buffer));
-                }
-
-
-        int valread = read(player->socket, buffer, 1024);
+        int valread = read(player->socket, buffer, 1024); //Recebe linha e coluna
+        
         if (valread > 0) {
+            
             sscanf(buffer, "%d %d", &row, &col);
-
             pthread_mutex_lock(&gameStateMutex);
-            if (gameState.currentPlayer == player->playerId && isValidMove(row, col)) {
-                makeMove(row, col);
+            if (gameState.currentPlayer == player->playerId && isValidMove(row, col)) {               
+                makeMove(row, col);    
+                memset(buffer, 0, sizeof(buffer));     
                 snprintf(buffer, sizeof(buffer), "Movimento valido\n");
             } else {
                 snprintf(buffer, sizeof(buffer), "Movimento invalido\n");
             }
-
             pthread_mutex_unlock(&gameStateMutex);
             
             send(player->socket, buffer, strlen(buffer), 0); //Envio validação de movimento
-
-            if (gameState.gameOver == 1)
-            {
-                snprintf(buffer, sizeof(buffer), "**** VOCE VENCEU!!! ****\n");
-                send(player->socket, buffer, strlen(buffer), 0);
-
-                close(player->socket);
-                free(player);
-                return NULL;
-            }
-
+        }    
+        
                             
+        if (gameState.gameOver == 1)
+        {
+            snprintf(buffer, sizeof(buffer), "**** VOCE VENCEU!!! ****\n");
+            send(gameState.list[gameState.currentPlayer].socket, buffer, strlen(buffer), 0);
+
+            snprintf(buffer, sizeof(buffer), "**** VOCE PERDEU!!! ****\n");
+            send(gameState.list[(gameState.currentPlayer + 1) % 2].socket, buffer, strlen(buffer), 0);
+
+            close(player->socket);
+            free(player);  
+            return NULL;
         }
+
+
+        memset(buffer, 0, sizeof(buffer));
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                index += snprintf(buffer + index, sizeof(buffer) - index, " %c", gameState.board[i][j]);
+                if (j < 3 - 1) {
+                    index += snprintf(buffer + index, sizeof(buffer) - index, " |");
+                }
+            }
+            index += snprintf(buffer + index, sizeof(buffer) - index, "\n");
+            if (i < 3 - 1) {
+                index += snprintf(buffer + index, sizeof(buffer) - index, "---+---+---\n");
+                }   
+            }
+        
+        printf("%s\n", buffer);
+        
+        send(player->socket, buffer, strlen(buffer), 0);
+
+
     }
+    
     close(player->socket);
-    free(player);
+    free(player);    
+    
     return NULL;
 }
 
@@ -196,7 +187,7 @@ int main() {
         Player *player = malloc(sizeof(Player));
         player->socket = new_socket;
         player->playerId = gameState.numPlayers++;
-        gameState.list[gameState.numPlayers-1]= *player;
+        gameState.list[gameState.numPlayers-1] = *player;
         
 
         pthread_create(&thread_id, NULL, handleClient, (void *)player);

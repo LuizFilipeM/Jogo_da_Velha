@@ -63,46 +63,14 @@ void *handleClient(void *arg) {
     Player *player = (Player *)arg;
     char buffer[1024] = {0};
     int row, col;
-
+    int start = 0;
+    
     while (!gameState.gameOver) {
         int index = 0;
-           
         
-
-        int valread = read(player->socket, buffer, 1024); //Recebe linha e coluna
-        
-        if (valread > 0) {
-            
-            sscanf(buffer, "%d %d", &row, &col);
-            pthread_mutex_lock(&gameStateMutex);
-            if (gameState.currentPlayer == player->playerId && isValidMove(row, col)) {               
-                makeMove(row, col);    
-                memset(buffer, 0, sizeof(buffer));     
-                snprintf(buffer, sizeof(buffer), "Movimento valido\n");
-            } else {
-                snprintf(buffer, sizeof(buffer), "Movimento invalido\n");
-            }
-            pthread_mutex_unlock(&gameStateMutex);
-            
-            send(player->socket, buffer, strlen(buffer), 0); //Envio validação de movimento
-        }    
-        
-                            
-        if (gameState.gameOver == 1)
-        {
-            snprintf(buffer, sizeof(buffer), "**** VOCE VENCEU!!! ****\n");
-            send(gameState.list[gameState.currentPlayer].socket, buffer, strlen(buffer), 0);
-
-            snprintf(buffer, sizeof(buffer), "**** VOCE PERDEU!!! ****\n");
-            send(gameState.list[(gameState.currentPlayer + 1) % 2].socket, buffer, strlen(buffer), 0);
-
-            close(player->socket);
-            free(player);  
-            return NULL;
-        }
-
-
         memset(buffer, 0, sizeof(buffer));
+        
+        //fomração da grade
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
                 index += snprintf(buffer + index, sizeof(buffer) - index, " %c", gameState.board[i][j]);
@@ -115,11 +83,52 @@ void *handleClient(void *arg) {
                 index += snprintf(buffer + index, sizeof(buffer) - index, "---+---+---\n");
                 }   
             }
+                 
+        if (gameState.currentPlayer == 1)
+        {
+            send(gameState.list[1].socket, buffer, strlen(buffer), 0);
+        } else if (gameState.currentPlayer == player->playerId || start != 0){
+            
+            send(gameState.list[0].socket, buffer, strlen(buffer), 0);
+        }
+        start = 1;  //variavel apenas para ignorar o else if quando o segundo cliente se conecta ao servidor
+                    //evitanto que se feito 2 sends, desincronizando a aplicação.
+                
+        memset(buffer, 0, sizeof(buffer));  
+        int valread = read(player->socket, buffer, 1024); //Recebe linha e coluna
         
-        printf("%s\n", buffer);
-        
-        send(player->socket, buffer, strlen(buffer), 0);
+        if (valread > 0) {
+            
+            sscanf(buffer, "%d %d", &row, &col);
 
+            pthread_mutex_lock(&gameStateMutex);
+            memset(buffer, 0, sizeof(buffer));  
+
+            if (gameState.currentPlayer == player->playerId && isValidMove(row, col)) {               
+                makeMove(row, col);    
+
+                if (gameState.gameOver == 1)
+                {
+                    snprintf(buffer, sizeof(buffer), "**** VOCE VENCEU!!! ****\n");
+                    send(gameState.list[gameState.currentPlayer].socket, buffer, strlen(buffer), 0);
+
+                    snprintf(buffer, sizeof(buffer), "**** VOCE PERDEU!!! ****\n");
+                    send(gameState.list[(gameState.currentPlayer + 1) % 2].socket, buffer, strlen(buffer), 0);
+
+                    close(player->socket);
+                    free(player);  
+                    return NULL;
+                }
+
+                snprintf(buffer, sizeof(buffer), "Movimento valido\n");
+            } else {
+                snprintf(buffer, sizeof(buffer), "Movimento invalido\n");
+            }
+            
+            send(player->socket, buffer, strlen(buffer), 0); //Envio validação de movimento
+            printf("\n");
+            pthread_mutex_unlock(&gameStateMutex);
+        }    
 
     }
     

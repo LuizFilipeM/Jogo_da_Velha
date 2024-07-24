@@ -34,25 +34,39 @@ int main() {
     while (1) {
         int row, col;
         
-        printf("Enter row and column (0-2): ");       
+        memset(buffer, 0, sizeof(buffer)); 
+        printf("\n");
+        //Exibe a grade
+        read(sock, buffer, 1024);
+
+        if (strcmp(buffer, "**** VOCE VENCEU!!! ****\n") == 0 || strcmp(buffer, "**** VOCE PERDEU!!! ****\n") == 0)
+        {   
+            printf("%s\n", buffer);
+            close(sock);
+            return 0;
+        }
+
+        printf("Grade:\n%s\n", buffer);
+
+
+        printf("Enter row and column (0-2): ");   
         scanf("%d %d", &row, &col);      
         
         memset(buffer, 0, sizeof(buffer)); 
+          
         snprintf(buffer, sizeof(buffer), "%d %d", row, col);
         send(sock, buffer, strlen(buffer), 0); //Envio da linha e coluna    
                 
+        memset(buffer, 0, sizeof(buffer)); 
         read(sock, buffer, 1024); //Recebe confirmacao de movimento valido       
-        printf("%s\n", buffer);  
-           
-        //Exibe o board
-        read(sock, buffer, 1024);
-        printf("%s\n", buffer); 
+        printf("%s\n", buffer);
+
 
         if (strcmp(buffer, "**** VOCE VENCEU!!! ****\n") == 0 || strcmp(buffer, "**** VOCE PERDEU!!! ****\n") == 0)
         {
             close(sock);
             return 0;
-        }
+        } 
         
     }
 
